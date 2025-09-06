@@ -19,16 +19,15 @@
   </style>
 </head>
 <body class="bg-gray-100 text-gray-900">
-  <div class="max-w-5xl mx-auto p-6">
+  <div class="max-w-6xl mx-auto p-6">
     <h1 class="text-2xl font-bold mb-4">Project Activities</h1>
     <input id="search" type="text" placeholder="Search..." 
            class="w-full mb-4 border rounded px-3 py-2"/>
-    <div id="tree" class="bg-white p-4 rounded shadow"></div>
-    <div id="details" class="mt-6 bg-white p-4 rounded shadow hidden"></div>
+    <div id="tree" class="bg-white rounded shadow divide-y"></div>
   </div>
 
   <script>
-    const API_URL = "https://script.google.com/macros/s/AKfycbxMOtYCJ9HYOnAMBhwZowyTRKHf3F58O9_CqIK3YPFGu8JjPRr5PmtTPLFbl37sL6YA/exec";
+    const API_URL = "https://script.google.com/macros/s/AKfycbxJkM9eKxx0wimIFb38Ea-NG1dug-8arhAZuanrE7xC4psZMFW1gk2WqLdsDPj2gwcm/exec";
 
     async function fetchData() {
       const res = await fetch(API_URL);
@@ -39,28 +38,37 @@
       return Object.keys(tree).sort().map(k => ({ key: k, node: tree[k] }));
     }
 
-    function renderNode(key, node, depth = 0) {
+    function renderNode(node, depth = 0) {
       const hasChildren = Object.keys(node.children).length > 0;
 
       const container = document.createElement("div");
       container.className = "ml-" + (depth*4);
 
       const row = document.createElement("div");
-      row.className = "flex items-center gap-2 cursor-pointer py-1 hover:bg-gray-100 rounded px-2";
+      row.className = "flex justify-between items-center py-2 px-2 cursor-pointer hover:bg-gray-50 text-sm";
       container.appendChild(row);
+
+      const left = document.createElement("div");
+      left.className = "flex items-center gap-2";
+      row.appendChild(left);
 
       const chevron = document.createElement("span");
       chevron.innerHTML = "▶";
-      chevron.className = "chevron text-sm";
+      chevron.className = "chevron text-xs text-gray-500";
       if (!hasChildren) chevron.style.visibility = "hidden";
-      row.appendChild(chevron);
+      left.appendChild(chevron);
 
       const label = document.createElement("span");
-      label.innerHTML = `<span class='text-xs text-gray-500 mr-2'>${key}</span> ${node.meta?.activityName || ''}`;
-      row.appendChild(label);
+      label.innerHTML = `<span class="font-semibold">${node.meta?.activityId}</span> - ${node.meta?.activityName || ''}`;
+      left.appendChild(label);
+
+      const right = document.createElement("div");
+      right.className = "text-xs text-gray-600";
+      right.textContent = node.meta?.endDate || "-";
+      row.appendChild(right);
 
       const childrenDiv = document.createElement("div");
-      childrenDiv.className = "children max-h-0 ml-4";
+      childrenDiv.className = "children max-h-0";
       container.appendChild(childrenDiv);
 
       row.addEventListener("click", () => {
@@ -69,30 +77,13 @@
           childrenDiv.classList.toggle("max-h-screen");
           chevron.classList.toggle("open");
         }
-        if (node.meta) showDetails(node.meta);
       });
 
       buildArray(node.children).forEach(child => {
-        childrenDiv.appendChild(renderNode(child.key, child.node, depth+1));
+        childrenDiv.appendChild(renderNode(child.node, depth+1));
       });
 
       return container;
-    }
-
-    function showDetails(meta) {
-      const div = document.getElementById("details");
-      div.classList.remove("hidden");
-      div.innerHTML = `
-        <h2 class="text-lg font-semibold mb-2">Details</h2>
-        <p><strong>S.no:</strong> ${meta.sno}</p>
-        <p><strong>Activity ID:</strong> ${meta.activityId}</p>
-        <p><strong>Name:</strong> ${meta.activityName}</p>
-        <p><strong>Start:</strong> ${meta.startDate}</p>
-        <p><strong>End:</strong> ${meta.endDate}</p>
-        <p><strong>Duration:</strong> ${meta.duration}</p>
-        <p><strong>Predecessors:</strong> ${meta.predecessors}</p>
-        <p><strong>Successors:</strong> ${meta.successors}</p>
-      `;
     }
 
     async function init() {
@@ -100,7 +91,7 @@
       const treeDiv = document.getElementById("tree");
       treeDiv.innerHTML = "";
       buildArray(data).forEach(item => {
-        treeDiv.appendChild(renderNode(item.key, item.node));
+        treeDiv.appendChild(renderNode(item.node));
       });
 
       document.getElementById("search").addEventListener("input", (e) => {
@@ -108,7 +99,7 @@
         treeDiv.innerHTML = "";
         buildArray(data).forEach(item => {
           if (JSON.stringify(item.node).toLowerCase().includes(term)) {
-            treeDiv.appendChild(renderNode(item.key, item.node));
+            treeDiv.appendChild(renderNode(item.node));
           }
         });
       });
